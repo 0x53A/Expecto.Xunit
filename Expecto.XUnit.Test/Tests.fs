@@ -3,9 +3,6 @@
 module Tests =
     open Expecto
     open Xunit
-    
-    do
-        MBrace.FsPickler.FsPickler.CreateBinarySerializer() |> ignore
 
     [<Fact>]
     let factDummy () = ()

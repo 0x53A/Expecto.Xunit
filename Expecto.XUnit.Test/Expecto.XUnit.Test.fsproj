@@ -66,8 +66,7 @@
   -->
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
-    <Compile Include="Library1.fs" />
-    <None Include="Script.fsx" />
+    <Compile Include="Tests.fs" />
     <None Include="paket.references" />
     <Content Include="App.config" />
   </ItemGroup>
@@ -101,23 +100,6 @@
       <ItemGroup>
         <Reference Include="Expecto">
           <HintPath>..\packages\Expecto\lib\net40\Expecto.dll</HintPath>
-          <Private>True</Private>
-          <Paket>True</Paket>
-        </Reference>
-      </ItemGroup>
-    </When>
-  </Choose>
-  <Choose>
-    <When Condition="$(TargetFrameworkIdentifier) == '.NETFramework' And $(TargetFrameworkVersion) == 'v4.6.1'">
-      <ItemGroup>
-        <Reference Include="System.Runtime.Serialization">
-          <Paket>True</Paket>
-        </Reference>
-        <Reference Include="System.Xml">
-          <Paket>True</Paket>
-        </Reference>
-        <Reference Include="FsPickler">
-          <HintPath>..\packages\FsPickler\lib\net45\FsPickler.dll</HintPath>
           <Private>True</Private>
           <Paket>True</Paket>
         </Reference>

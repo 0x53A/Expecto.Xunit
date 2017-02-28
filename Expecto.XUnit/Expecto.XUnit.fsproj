@@ -55,8 +55,7 @@
       <Link>paket-files/TaskBuilder.fs</Link>
     </Compile>
     <Compile Include="AssemblyInfo.fs" />
-    <Compile Include="Library1.fs" />
-    <None Include="Script.fsx" />
+    <Compile Include="ExpectoDiscoverer.fs" />
     <Content Include="paket.references" />
   </ItemGroup>
   <ItemGroup>
@@ -99,23 +98,6 @@
       <ItemGroup>
         <Reference Include="FSharp.Core">
           <HintPath>..\packages\FSharp.Core\lib\net40\FSharp.Core.dll</HintPath>
-          <Private>True</Private>
-          <Paket>True</Paket>
-        </Reference>
-      </ItemGroup>
-    </When>
-  </Choose>
-  <Choose>
-    <When Condition="$(TargetFrameworkIdentifier) == '.NETFramework' And $(TargetFrameworkVersion) == 'v4.6.1'">
-      <ItemGroup>
-        <Reference Include="System.Runtime.Serialization">
-          <Paket>True</Paket>
-        </Reference>
-        <Reference Include="System.Xml">
-          <Paket>True</Paket>
-        </Reference>
-        <Reference Include="FsPickler">
-          <HintPath>..\packages\FsPickler\lib\net45\FsPickler.dll</HintPath>
           <Private>True</Private>
           <Paket>True</Paket>
         </Reference>

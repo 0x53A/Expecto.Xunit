@@ -1,7 +1,6 @@
 Expecto
 xunit
 xunit.extensibility.core
-fspickler
 FSharp.Core
 
 File:TaskBuilder.fs

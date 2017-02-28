@@ -7,7 +7,6 @@ NUGET
       FSharp.Core (>= 3.1.2.5)
       Mono.Cecil (>= 0.9.6.4)
     FSharp.Core (4.0.0.1) - redirects: force
-    FsPickler (3.2) - redirects: force
     Mono.Cecil (0.9.6.4)
     xunit (2.2)
       xunit.assert (2.2)
