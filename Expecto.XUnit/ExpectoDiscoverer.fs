@@ -60,10 +60,13 @@ type ExpectoTestCase(test:FlatTest, testMethod:ITestMethod, n:int) =
                         with printer = { TestPrinters.silent with summary = summaryFn } }
 
                 let x = runTests config testCase
-                if x <> 0 then failwithf "%A" summary
                 let elapsed = decimal sw.Elapsed.TotalSeconds
-                queueMsg (TestPassed (xunitTest, elapsed, sprintf "%A" summary))
-                RunSummary(Total=1, Time=elapsed)
+                if x <> 0 then
+                    queueMsg (TestFailed (xunitTest, elapsed, sprintf "%A" summary, null))
+                    RunSummary(Failed=1, Total=1, Time=elapsed)
+                else
+                    queueMsg (TestPassed (xunitTest, elapsed, ""))
+                    RunSummary(Total=1, Time=elapsed)
             with
               exn ->
                 let elapsed = decimal sw.Elapsed.TotalSeconds

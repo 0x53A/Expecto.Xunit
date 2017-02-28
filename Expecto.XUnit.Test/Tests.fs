@@ -1,11 +1,8 @@
 ﻿namespace Expecto.XUnit.Test
 
-module Tests =
-    open Expecto
-    open Xunit
+open Expecto
 
-    [<Fact>]
-    let factDummy () = ()
+module Tests =
 
     [<Expecto.XUnit.ExpectoBridge>]
     let dummy() = ()
