@@ -1,0 +1,18 @@
+source https://www.nuget.org/api/v2
+
+framework = net461
+
+nuget Expecto
+nuget FSharp.Core = 4.0.0.1 redirects: force
+
+nuget xunit
+nuget xunit.runner.visualstudio version_in_path: true
+nuget xunit.extensibility.core
+
+#nuget fspickler
+
+github rspeele/TaskBuilder.fs TaskBuilder.fs
+
+group build
+    source https://www.nuget.org/api/v2
+    nuget xunit.runner.console

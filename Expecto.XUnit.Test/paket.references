@@ -1,0 +1,5 @@
+Expecto
+xunit.runner.visualstudio
+xunit
+FSharp.Core
+fspickler
