@@ -14,13 +14,13 @@ open System.Collections.Generic
 open System.Threading.Tasks
 open System.Diagnostics
 
+
 [<Serializable>]
 type ExpectoTestCase(test:FlatTest, testMethod:ITestMethod, n:int) =
     
     inherit LongLivedMarshalByRefObject()
 
-    do printfn "ExpectoTestCase ctor"
-
+    // TODO: clean up the whole (de)serialization stuff
     let mutable test = test
     let mutable testMethod = testMethod
     let mutable testName = if obj.ReferenceEquals(null, test) then "" else test.name
@@ -28,19 +28,44 @@ type ExpectoTestCase(test:FlatTest, testMethod:ITestMethod, n:int) =
     let mutable sourceInformation = null
     let mutable n = n
 
+    let uniqueId = sprintf "Expecto-%s-%i" testName n
+
     new() = ExpectoTestCase(Unchecked.defaultof<FlatTest>, Unchecked.defaultof<ITestMethod>, 0)
+
+    interface IXunitSerializable with
+        member self.Deserialize(info) =
+            testMethod <- info.GetValue("testMethod")
+            testName <- info.GetValue("testName")
+            shouldSkip <- info.GetValue("shouldSkip")
+            n <- info.GetValue("n")
+
+        member self.Serialize(info) =
+            info.AddValue("testMethod", testMethod)
+            info.AddValue("testName", testName)
+            info.AddValue("shouldSkip", shouldSkip)
+            info.AddValue("n", n)
 
     interface IXunitTestCase with
         member self.Method = testMethod.Method
-        member self.RunAsync(diagnosticMessageSink, messageBus, constructorArguments, aggregator, cancellationTokenSource) = Task.Run (fun () ->
-            
-            let queueMsg (msg:#IMessageSinkMessage) =
-                messageBus.QueueMessage (msg) |> ignore
+        member self.RunAsync(diagnosticMessageSink, messageBus, constructorArguments, aggregator, cancellationTokenSource) =
+        
+          let xunitTest = XunitTest(self, testName)
+          let queueMsg (msg:#IMessageSinkMessage) =
+              messageBus.QueueMessage (msg) |> ignore
+          
+          queueMsg(TestCaseStarting self)
+          queueMsg(TestStarting xunitTest)
+
+          Task.Run (fun () ->            
             
             let sw = Stopwatch.StartNew()
             let test =
                 if obj.ReferenceEquals(null, test) then
-                    // need to rediscover
+                    // need to rediscover:
+                    // this object was passed through serialization,
+                    // and the expecto test object is not serializable.
+                    // I assume that the order the tests are returned by is stable, so I re-enumerate the tests and get the n-th item
+
                     let testAssemblyPath = testMethod.TestClass.Class.Assembly.AssemblyPath
                     let tests = testFromAssembly (Assembly.LoadFrom testAssemblyPath)
                     let flatList = toTestCodeList tests.Value
@@ -48,46 +73,52 @@ type ExpectoTestCase(test:FlatTest, testMethod:ITestMethod, n:int) =
                 else
                     test
             let testCase = TestCase (test.test, if test.focusOn then Focused else Normal)
-            let xunitTest = XunitTest(self, testName)
-            queueMsg(TestStarting xunitTest)
-            let mutable summary : TestRunSummary = Unchecked.defaultof<_>
+            let mutable summary : Choice<TestRunSummary, exn> option = None
             try
                 let config =
                     let summaryFn = fun cfg (smr:TestRunSummary) ->
-                        summary <- smr
+                        summary <- Some (Choice1Of2 smr)
                         Async.AwaitTask <| Task.FromResult ()
                     { ExpectoConfig.defaultConfig
                         with printer = { TestPrinters.silent with summary = summaryFn } }
 
                 let x = runTests config testCase
-                let elapsed = decimal sw.Elapsed.TotalSeconds
-                if x <> 0 then
-                    queueMsg (TestFailed (xunitTest, elapsed, sprintf "%A" summary, null))
-                    RunSummary(Failed=1, Total=1, Time=elapsed)
-                else
-                    queueMsg (TestPassed (xunitTest, elapsed, ""))
-                    RunSummary(Total=1, Time=elapsed)
+                x |> ignore
             with
-              exn ->
-                let elapsed = decimal sw.Elapsed.TotalSeconds
-                queueMsg (TestFailed (xunitTest, elapsed, sprintf "%A" summary, exn))
+              exn -> summary <- Some (Choice2Of2 exn)
+              
+            let elapsed = decimal sw.Elapsed.TotalSeconds
+            match summary with
+            | None ->
+                let msg = "expecto didn't produce a result"
+                queueMsg (TestFailed (xunitTest, elapsed, null, Exception msg))
                 RunSummary(Failed=1, Total=1, Time=elapsed)
+            | Some (Choice2Of2 exn) ->
+                queueMsg (TestFailed (xunitTest, elapsed, null, exn))
+                RunSummary(Failed=1, Total=1, Time=elapsed)
+            | Some (Choice1Of2 testRun) ->
+                match testRun.results with
+                | head :: [] ->
+                    let headResult = snd head
+                    match headResult.result with
+                    | Passed     -> queueMsg (TestPassed (xunitTest, elapsed, null))
+                    | Ignored s  -> queueMsg (TestSkipped (xunitTest, s))
+                    | Failed s   -> queueMsg (TestFailed (xunitTest, elapsed, null, Exception s))
+                    | Error exn  -> queueMsg (TestFailed (xunitTest, elapsed, null, exn))
+                    RunSummary(Total=testRun.results.Length,
+                        Failed=testRun.errored.Length+testRun.failed.Length,
+                        Skipped=testRun.ignored.Length,
+                        Time=elapsed)
+                | []
+                | _ ->
+                    let msg = sprintf "Expecto did not produce the expected number of results. Expected 1, got %i" testRun.results.Length
+                    queueMsg (TestFailed (xunitTest, elapsed, msg, null))
+                    RunSummary(Total=testRun.results.Length,
+                        Failed=testRun.errored.Length+testRun.failed.Length,
+                        Skipped=testRun.ignored.Length,
+                        Time=elapsed)
         )
-    interface IXunitSerializable with
-        member self.Deserialize(info) =
-            printfn "Deserialize"
-            testMethod <- info.GetValue("testMethod")
-            testName <- info.GetValue("testName")
-            shouldSkip <- info.GetValue("shouldSkip")
-            n <- info.GetValue("n")
-//            sourceInformation <- info.GetValue("sourceInformation")
-        member self.Serialize(info) =
-            printfn "Serialize"
-            info.AddValue("testMethod", testMethod)
-            info.AddValue("testName", testName)
-            info.AddValue("shouldSkip", shouldSkip)
-            info.AddValue("n", n)
-//            info.AddValue("sourceInformation", sourceInformation)
+
     interface ITestCase with
         member self.DisplayName = testName
         member self.SkipReason = shouldSkip
@@ -97,59 +128,35 @@ type ExpectoTestCase(test:FlatTest, testMethod:ITestMethod, n:int) =
         member self.TestMethod = testMethod
         member self.TestMethodArguments = Array.empty
         member self.Traits = new Dictionary<_,_>()
-        member self.UniqueID = sprintf "Expecto.XUnit-%i" n
+        member self.UniqueID = uniqueId
 
 
 
 type ExpectoDiscoverer(diagnosticMessageSink:IMessageSink) =
-
-    member x.Discover(discoveryOptions, testMethod, factAttribute) = 
-
-        if false then
-            new XunitTestCase(diagnosticMessageSink, TestMethodDisplay.Method, testMethod) :> IXunitTestCase
-            |> Seq.singleton
-        else
+    interface IXunitTestCaseDiscoverer with
+        member x.Discover(discoveryOptions, testMethod, factAttribute) =
             let printDiag =
-                ((+) "ExpectoDiscoverer.Discover: ") >> DiagnosticMessage >> diagnosticMessageSink.OnMessage >> ignore
+                ((+) "[ExpectoDiscoverer.Discover]: ") >> DiagnosticMessage >> diagnosticMessageSink.OnMessage >> ignore
+
             printDiag "Starting"
 
             // ignore the attribute, get the assembly where the method is defined and get all expecto test cases from there
             let testAssemblyPath = testMethod.TestClass.Class.Assembly.AssemblyPath
             printDiag <| "testAssemblyPath is " + testAssemblyPath
             let tests = testFromAssembly (Assembly.LoadFrom testAssemblyPath)
-            try
-                match tests with
-                | Some t ->
-                    printDiag "testFromAssembly was Some"
-                    try
-                        [|
-                            let flatList = toTestCodeList t
-                            for i, t in flatList |> Seq.mapi (fun i t -> i,t) do
-                                printDiag <| sprintf "One testcase: %s" t.name
-                                yield ExpectoTestCase(t, testMethod, i) :> IXunitTestCase
-                        |] :> seq<_>
-                    with
-                        exn ->
-                        printDiag <| sprintf "Exception during discovery: %O" exn
-                        reraise()
-                | None ->
-                    printDiag "testFromAssembly was None"
-                    Seq.empty
-            finally
-                printDiag "Finished Discover"
-                    
-    interface IXunitTestCaseDiscoverer with
-        member x.Discover(discoveryOptions, testMethod, factAttribute) =
-            let seq =
-                x.Discover(discoveryOptions, testMethod, factAttribute)
-                |> Seq.toArray
-            printfn "Got %i testcases" seq.Length
-            seq :> seq<_>
-        
 
-
+            match tests with
+            | Some t -> seq {            
+                let flatList = toTestCodeList t
+                for i, t in flatList |> Seq.mapi (fun i t -> i,t) do
+                    printDiag <| "Discovered one: " + t.name
+                    yield ExpectoTestCase(t, testMethod, i) :> IXunitTestCase
+                printDiag "Finished"
+              }
+            | None ->
+                Seq.empty
 
 [<AttributeUsage(AttributeTargets.Method, AllowMultiple = false)>]
 [<XunitTestCaseDiscoverer("Expecto.XUnit.ExpectoDiscoverer", "Expecto.XUnit")>]
 type ExpectoBridgeAttribute() =
-    inherit TheoryAttribute()
+    inherit FactAttribute()

@@ -3,6 +3,7 @@
 open Expecto
 
 module Tests =
+    open System.Threading
 
     [<Expecto.XUnit.ExpectoBridge>]
     let dummy() = ()
@@ -19,4 +20,10 @@ module Tests =
       test "A failing test" {
         let subject = "Hello world2"
         Expect.equal subject "Hello World" "The strings should equal"
+      }
+
+    [<Tests>]
+    let tests3 =
+      test "A long test" {
+        Thread.Sleep(10000)
       }
