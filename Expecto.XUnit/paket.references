@@ -1,5 +1,5 @@
 Expecto
-xunit
+xunit.extensibility.execution
 xunit.extensibility.core
 FSharp.Core
 

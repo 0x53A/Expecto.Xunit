@@ -6,6 +6,7 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".paket", ".paket", "{AD1C9D64-E56B-4524-968C-FA0280B5BA06}"
 	ProjectSection(SolutionItems) = preProject
 		paket.dependencies = paket.dependencies
+		paket.lock = paket.lock
 	EndProjectSection
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Expecto.XUnit", "Expecto.XUnit\Expecto.XUnit.fsproj", "{79EFE4D5-063D-4F92-826C-9E6AE73BE9FD}"
