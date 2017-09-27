@@ -240,3 +240,5 @@ ModelManifest.xml
 
 # FAKE - F# Make
 .fake/
+/paket-files/paket.restore.cached
+/packages/build/xunit.runner.console
