@@ -242,3 +242,4 @@ ModelManifest.xml
 .fake/
 /paket-files/paket.restore.cached
 /packages/build/xunit.runner.console
+/.idea/.idea.Expecto.XUnit

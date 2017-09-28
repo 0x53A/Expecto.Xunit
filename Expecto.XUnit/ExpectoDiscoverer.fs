@@ -133,6 +133,18 @@ type ExpectoTestCase(test:FlatTest, testMethod:ITestMethod, n:int) =
 
 
 type ExpectoDiscoverer(diagnosticMessageSink:IMessageSink) =
+
+    // copy-pasted from https://github.com/haf/expecto/blob/5d06334f2aa5db21971a37423294ca4a0b7cf1d3/Expecto/Expecto.fs#L1203
+    let getTypeAndMethod asm testCode =
+      match testCode with
+      | Sync test ->
+        let t = getFuncTypeToUse test asm
+        let m = t.GetTypeInfo().GetMethods () |> Seq.find (fun m -> (m.Name = "Invoke") && (m.DeclaringType = t))
+        (t, m)
+      | Async _ | AsyncFsCheck _ ->
+        (null, null)
+
+
     interface IXunitTestCaseDiscoverer with
         member x.Discover(discoveryOptions, testMethod, factAttribute) =
             let printDiag =
@@ -143,19 +155,39 @@ type ExpectoDiscoverer(diagnosticMessageSink:IMessageSink) =
             // ignore the attribute, get the assembly where the method is defined and get all expecto test cases from there
             let testAssemblyPath = testMethod.TestClass.Class.Assembly.AssemblyPath
             printDiag <| "testAssemblyPath is " + testAssemblyPath
-            let tests = testFromAssembly (Assembly.LoadFrom testAssemblyPath)
-
+            let asm = Assembly.LoadFrom testAssemblyPath
+            let tests = testFromAssembly (asm)
             match tests with
             | Some t -> seq {            
                 let flatList = toTestCodeList t
+                // note: for now the "identity" of the test is the index from the expecto iteration - this should be changed to the string-testname
                 for i, t in flatList |> Seq.mapi (fun i t -> i,t) do
                     printDiag <| "Discovered one: " + t.name
-                    yield ExpectoTestCase(t, testMethod, i) :> IXunitTestCase
+                    
+                    //let method = getMethodName asm t.test
+                    //let location = getLocation asm t.test
+                    
+                    // get test method (this will be in the compiler-generated type that holds the lambda - there is no actual test class in the source code)
+                    let typ,meth = getTypeAndMethod asm t.test
+                    match typ,meth with
+                    | null, null ->
+                        // we couldn't get more information -> attach it to the original dummy method
+                        yield ExpectoTestCase(t, testMethod, i) :> IXunitTestCase
+                    | typ,meth ->
+                        let reflectionTypInfo = Reflector.Wrap(typ)
+                        // this is highly-probably ".Invoke" in the compiler-generated class for the lambda
+                        let m = reflectionTypInfo.GetMethod(meth.Name, true)
+                        let iTypInfo = testMethod.TestClass.TestCollection.TestAssembly.Assembly.GetType(typ.FullName)
+                        let testClass = TestClass(testMethod.TestClass.TestCollection, iTypInfo)
+                        yield ExpectoTestCase(t, TestMethod(testClass, m), i) :> IXunitTestCase
                 printDiag "Finished"
               }
             | None ->
                 Seq.empty
 
+/// I didn't find a way to register an Assembly-Discoverer with xunit (there may well be, please tell me)
+/// So instead the user should create one dummy method and attach this attribute to it.
+/// This will trigger my custom 'IXunitTestCaseDiscoverer', which will return all expecto tests in the whole assembly.
 [<AttributeUsage(AttributeTargets.Method, AllowMultiple = false)>]
 [<XunitTestCaseDiscoverer("Expecto.XUnit.ExpectoDiscoverer", "Expecto.XUnit")>]
 type ExpectoBridgeAttribute() =
