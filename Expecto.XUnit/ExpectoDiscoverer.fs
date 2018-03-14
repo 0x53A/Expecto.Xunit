@@ -28,7 +28,7 @@ type ExpectoTestCase(test:FlatTest, testMethod:ITestMethod, n:int) =
     let mutable sourceInformation = null
     let mutable n = n
 
-    let uniqueId = sprintf "Expecto-%s-%i" testName n
+    let mutable uniqueId = sprintf "Expecto-%s-%i" testName n
 
     new() = ExpectoTestCase(Unchecked.defaultof<FlatTest>, Unchecked.defaultof<ITestMethod>, 0)
 
@@ -38,6 +38,7 @@ type ExpectoTestCase(test:FlatTest, testMethod:ITestMethod, n:int) =
             testName <- info.GetValue("testName")
             shouldSkip <- info.GetValue("shouldSkip")
             n <- info.GetValue("n")
+            uniqueId <- sprintf "Expecto-%s-%i" testName n
 
         member self.Serialize(info) =
             info.AddValue("testMethod", testMethod)

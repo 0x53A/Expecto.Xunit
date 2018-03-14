@@ -1,9 +1,10 @@
 source https://www.nuget.org/api/v2
 
 framework = net461
+redirects: force
 
 nuget Expecto
-nuget FSharp.Core >= 4.0.0.1 redirects: force
+nuget FSharp.Core >= 4.0.0.1
 
 nuget xunit
 nuget xunit.runner.visualstudio version_in_path: true

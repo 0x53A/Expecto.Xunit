@@ -1,30 +1,33 @@
+REDIRECTS: FORCE
 RESTRICTION: == net461
 NUGET
   remote: https://www.nuget.org/api/v2
-    Argu (3.7)
-    Expecto (5.0.1)
-      Argu (>= 3.7)
-      FSharp.Core (>= 4.1.12)
-      Mono.Cecil (>= 0.10.0-beta5)
-    FSharp.Core (4.2.3) - redirects: force
-    Mono.Cecil (0.10.0-beta6)
-    xunit (2.2)
-      xunit.assert (2.2)
-      xunit.core (2.2)
+    Argu (5.1)
+      FSharp.Core (>= 4.0.0.1)
+    Expecto (7.0)
+      Argu (>= 5.1)
+      Mono.Cecil (>= 0.10.0-beta7)
+    FSharp.Core (4.3.4)
+    Mono.Cecil (0.10.0-beta7)
+    xunit (2.3.1)
+      xunit.analyzers (>= 0.7)
+      xunit.assert (2.3.1)
+      xunit.core (2.3.1)
     xunit.abstractions (2.0.1)
-    xunit.assert (2.2)
-    xunit.core (2.2)
-      xunit.extensibility.core (2.2)
-      xunit.extensibility.execution (2.2)
-    xunit.extensibility.core (2.2)
+    xunit.analyzers (0.8)
+    xunit.assert (2.3.1)
+    xunit.core (2.3.1)
+      xunit.extensibility.core (2.3.1)
+      xunit.extensibility.execution (2.3.1)
+    xunit.extensibility.core (2.3.1)
       xunit.abstractions (>= 2.0.1)
-    xunit.extensibility.execution (2.2)
-      xunit.extensibility.core (2.2)
-    xunit.runner.visualstudio (2.2.0) - version_in_path: true
+    xunit.extensibility.execution (2.3.1)
+      xunit.extensibility.core (2.3.1)
+    xunit.runner.visualstudio (2.3.1) - version_in_path: true
 GITHUB
   remote: rspeele/TaskBuilder.fs
-    TaskBuilder.fs (7e11e86a05ce2c10d37ce25f23b06c3fdceae8e5)
+    TaskBuilder.fs (90b641c53dc60dc8c9e0aecbb76576fc9611f441)
 GROUP build
 NUGET
   remote: https://www.nuget.org/api/v2
-    xunit.runner.console (2.2)
+    xunit.runner.console (2.3.1)
